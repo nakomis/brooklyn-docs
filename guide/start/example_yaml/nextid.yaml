@@ -38,6 +38,9 @@ services:
     dynamiccluster.memberspec:
       $brooklyn:entitySpec:
         type: server
+        brooklyn.config:
+          templates.customize:
+            /tmp/someconf.config: someconf.config
         brooklyn.initializers:
         - type: org.apache.brooklyn.core.sensor.StaticSensor
           brooklyn.config:
