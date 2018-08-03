@@ -1,0 +1,25 @@
+name: MH Cluster Test (targetType)
+
+location: localhost
+
+services:
+- type: org.apache.brooklyn.entity.group.DynamicCluster
+  name: Cluster
+  id: cluster
+
+  brooklyn.initializers:
+  - type: org.apache.brooklyn.core.sensor.StaticSensor
+    brooklyn.config:
+      name: next.cluster.member.id
+      targetType: com.google.common.base.Supplier
+      static.value:
+        $brooklyn:object:
+          type: org.apache.brooklyn.util.guava.Suppliers
+          factoryMethod.name: incrementing
+          factoryMethod.args:
+          - 100
+  brooklyn.config:
+    cluster.initial.size: 3
+    dynamiccluster.memberspec:
+      $brooklyn:entitySpec:
+        type: server
