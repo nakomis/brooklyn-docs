@@ -1,4 +1,4 @@
-name: MH Cluster Test (server.id.formatted)
+name: MH Cluster Test (propagated.to.members)
 
 ## Requires the following in /etc/hosts
 #127.0.0.1       localhost1
@@ -49,3 +49,9 @@ services:
               - $brooklyn:attributeWhenReady("host.name")
               - $brooklyn:attributeWhenReady("application.id")
               - $brooklyn:attributeWhenReady("entity.id")
+        brooklyn.enrichers:
+        - type: org.apache.brooklyn.enricher.stock.Propagator
+          brooklyn.config:
+            producer: $brooklyn:entity("cluster")
+            propagating:
+            - $brooklyn:sensor("server.ids")
