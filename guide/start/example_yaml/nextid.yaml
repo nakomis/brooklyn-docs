@@ -4,12 +4,12 @@ name: MH Cluster Test (propagated.to.members)
 #127.0.0.1       localhost1
 #127.0.0.1       localhost2
 #127.0.0.1       localhost3
-location:
-  byon:
-    hosts:
-    - localhost1
-    - localhost2
-    - localhost3
+location: aws-ec2:eu-west-1
+#  byon:
+#    hosts:
+#    - localhost1
+#    - localhost2
+#    - localhost3
 
 services:
 - type: org.apache.brooklyn.entity.group.DynamicCluster
@@ -31,8 +31,17 @@ services:
   - type: org.apache.brooklyn.enricher.stock.Aggregator
     brooklyn.config:
       fromMembers: true
+      enricher.aggregator.excludeBlank: true
       enricher.sourceSensor: $brooklyn:sensor("server.id.formatted")
       enricher.targetSensor: $brooklyn:sensor("server.ids")
+  - type: org.apache.brooklyn.enricher.stock.Joiner
+    brooklyn.config:
+      enricher.aggregator.excludeBlank: true
+      enricher.joiner.minimum: 3
+      enricher.joiner.quote: false
+      enricher.joiner.separator: ""
+      enricher.sourceSensor: $brooklyn:sensor("server.ids")
+      enricher.targetSensor: $brooklyn:sensor("server.ids.joined")
   brooklyn.config:
     cluster.initial.size: 3
     dynamiccluster.memberspec:
@@ -47,14 +56,15 @@ services:
             name: server.id.formatted
             static.value:
               $brooklyn:formatString:
-              - server.%s=%s:%s:%s
+              - server.%s=%s:%s:%s%s
               - $brooklyn:config("cluster.member.id")
               - $brooklyn:attributeWhenReady("host.name")
               - $brooklyn:attributeWhenReady("application.id")
               - $brooklyn:attributeWhenReady("entity.id")
+              - "\n"
         brooklyn.enrichers:
         - type: org.apache.brooklyn.enricher.stock.Propagator
           brooklyn.config:
             producer: $brooklyn:entity("cluster")
             propagating:
-            - $brooklyn:sensor("server.ids")
+            - $brooklyn:sensor("server.ids.joined")
