@@ -1,15 +1,6 @@
 name: MH Cluster Test (propagated.to.members)
 
-## Requires the following in /etc/hosts
-#127.0.0.1       localhost1
-#127.0.0.1       localhost2
-#127.0.0.1       localhost3
 location: aws-ec2:eu-west-1
-#  byon:
-#    hosts:
-#    - localhost1
-#    - localhost2
-#    - localhost3
 
 services:
 - type: org.apache.brooklyn.entity.group.DynamicCluster
@@ -17,6 +8,7 @@ services:
   id: cluster
 
   brooklyn.initializers:
+  # Step 1. Override the `next.cluster.member.id` supplier with a new one starting at 100
   - type: org.apache.brooklyn.core.sensor.StaticSensor
     brooklyn.config:
       name: next.cluster.member.id
@@ -28,12 +20,17 @@ services:
           factoryMethod.args:
           - 100
   brooklyn.enrichers:
+  # Step 3. Aggregate the formatted member server ids into a list (java.util.List) on the cluster
   - type: org.apache.brooklyn.enricher.stock.Aggregator
     brooklyn.config:
       fromMembers: true
       enricher.aggregator.excludeBlank: true
       enricher.sourceSensor: $brooklyn:sensor("server.id.formatted")
       enricher.targetSensor: $brooklyn:sensor("server.ids")
+  # Step 4. Join the formatted member server ids into a string. This assumes the "\n" is appended in step 2.
+  # Using `enricher.joiner.separator: "\n"` does not work here as it is quashed by the YAML parser.
+  # Also, `excludeBlank` and `minimum` are crucial. This ensures that any attempt to read this value blocks
+  # until all members of the cluster have been provisioned (i.e. their `host.name` attribute is available)
   - type: org.apache.brooklyn.enricher.stock.Joiner
     brooklyn.config:
       enricher.aggregator.excludeBlank: true
@@ -51,6 +48,7 @@ services:
           templates.customize:
             /tmp/someconf.config: someconf.config
         brooklyn.initializers:
+        # Step 2. Publish the formatted `server.id` as a string sensor on the member entities. Note the "\n" at the end
         - type: org.apache.brooklyn.core.sensor.StaticSensor
           brooklyn.config:
             name: server.id.formatted
@@ -63,6 +61,8 @@ services:
               - $brooklyn:attributeWhenReady("entity.id")
               - "\n"
         brooklyn.enrichers:
+        # Step 5. Propagate the joined server ids from the cluster down to the members. This makes it easier to reference in the
+        # templated config file
         - type: org.apache.brooklyn.enricher.stock.Propagator
           brooklyn.config:
             producer: $brooklyn:entity("cluster")
