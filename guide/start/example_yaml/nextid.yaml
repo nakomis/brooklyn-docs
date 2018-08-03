@@ -1,6 +1,15 @@
-name: MH Cluster Test (targetType)
+name: MH Cluster Test (server.id.formatted)
 
-location: localhost
+## Requires the following in /etc/hosts
+#127.0.0.1       localhost1
+#127.0.0.1       localhost2
+#127.0.0.1       localhost3
+location:
+  byon:
+    hosts:
+    - localhost1
+    - localhost2
+    - localhost3
 
 services:
 - type: org.apache.brooklyn.entity.group.DynamicCluster
@@ -18,8 +27,25 @@ services:
           factoryMethod.name: incrementing
           factoryMethod.args:
           - 100
+  brooklyn.enrichers:
+  - type: org.apache.brooklyn.enricher.stock.Aggregator
+    brooklyn.config:
+      fromMembers: true
+      enricher.sourceSensor: $brooklyn:sensor("server.id.formatted")
+      enricher.targetSensor: $brooklyn:sensor("server.ids")
   brooklyn.config:
     cluster.initial.size: 3
     dynamiccluster.memberspec:
       $brooklyn:entitySpec:
         type: server
+        brooklyn.initializers:
+        - type: org.apache.brooklyn.core.sensor.StaticSensor
+          brooklyn.config:
+            name: server.id.formatted
+            static.value:
+              $brooklyn:formatString:
+              - server.%s=%s:%s:%s
+              - $brooklyn:config("cluster.member.id")
+              - $brooklyn:attributeWhenReady("host.name")
+              - $brooklyn:attributeWhenReady("application.id")
+              - $brooklyn:attributeWhenReady("entity.id")
