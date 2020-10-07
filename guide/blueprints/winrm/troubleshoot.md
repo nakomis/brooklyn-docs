@@ -147,3 +147,18 @@ Caused by: java.lang.UnsupportedOperationException: Entity References are not al
 The workaround is to downgrade Java to 8u151 or similar, or upgrade to 8u192 or later.
 
 
+### WinRmException on operation timeout
+
+The default timeout for performing operations (just as running the install script) is one minute. This may be too short for many Windows operations. If the timeout expires, it will be reported in the console as follows:
+
+```
+WinRmException: (Administrator@18.159.101.40:5985) : failed to execute command: Failure when calling public abstract io.cloudsoft.winrm4j.client.shell.ReceiveResponse 
+io.cloudsoft.winrm4j.client.WinRm.receive(io.cloudsoft.winrm4j.client.shell.Receive,java.lang.String,int,java.lang.String,io.cloudsoft.winrm4j.client.wsman.Locale,io.cloudsoft.winrm4j.client.wsman.SelectorSetType)[Ljava.lang.Object;@1ed1fb0f:
+LinkageError: loader constraint violation: loader (instance of <bootloader>) previously initiated loading for a different type with name "javax/xml/soap/SOAPFault"
+```
+
+To set a longer timeout, add the following to your location definition:
+
+```
+brooklyn.winrm.config.winrm.operationTimeout: 120m
+```
